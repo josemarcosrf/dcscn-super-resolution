@@ -13,7 +13,10 @@ from torchvision.datasets import ImageFolder
 logger = logging.getLogger(__name__)
 
 
-def plot_trasnformations(images):
+# TODO: Convert images to 1 channel Y from YCbCr or grascale
+
+
+def plot_images(images):
     n = len(images)
     plt.figure()
     for i, img in enumerate(images):
@@ -24,6 +27,16 @@ def plot_trasnformations(images):
         ax.axis('off')
 
     plt.show()
+
+
+def convert_rgb_to_ycbcr(pil_img):
+    """Converts a given PIL image from RGB to YCbCr
+    """
+    return pil_img.convert('YCbCr')
+
+
+def convert_to_grayscale(pil_img):
+    return pil_img.convert('LA')
 
 
 def build_transformations(augment_level):
@@ -61,11 +74,17 @@ def build_transformations(augment_level):
     return names[:augment_level], transformations[:augment_level]
 
 
-def apply_transform(transformations, img):
-    return [t(img) for t in transformations]
+def apply_transform(transformations, img, to_tensor=False):
+    """applies a set of transformations on a given PIL image
+    """
+    if to_tensor:
+        return [transforms.Compose([t, transforms.ToTensor()])(img)
+                for t in transformations]
+    return [t(img)
+            for t in transformations]
 
 
-def transform_all(directory, augment_level):
+def load_transform(directory, augment_level):
     try:
 
         sets = os.listdir(directory)
@@ -80,26 +99,30 @@ def transform_all(directory, augment_level):
             transform=lambda x: apply_transform(transformations, x)
         )
 
-        logger.debug("train_data type: {}".format(type(train_data)))
+        # In this case we don't care about the label
+        total_imgs = sum(len(imgs) for imgs, _ in train_data)
+        logger.info("Total images after augmentation: {}".format(total_imgs))
 
-        # create a dictionary of images indexed by dataset
-        for images, c in train_data:
-            plot_trasnformations(images)
-            print(images[0].size)
-            print(np.array(images[0]).shape)
-            exit()
+        return train_data
 
     except Exception as e:
         logger.error("Error while applying tranformations")
         logger.exception(e)
-        exit
 
 
+def extract_patches(img_tensor, size=32, step=16):
+    logger.debug("img_tensor shape: {}".format(img_tensor.shape))
+    return img_tensor[0, :, :].unfold(0, size=size, step=step) \
+        .unfold(1, size=size, step=step) \
+        .reshape(-1, size, size)
 
 
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("data_dir", help="Data directory")
+    parser.add_argument("data_dir",
+                        help="Data directory")
+    parser.add_argument("--n_samples", type=int, default=4,
+                        help="Number fo samples to plot")
     parser.add_argument("--augment_level", type=int, default=4,
                         help=("Augmentation level:\n",
                               ">=2: vertical flip"
@@ -120,4 +143,13 @@ if __name__ == '__main__':
     coloredlogs.install(logger=logger, level=logging.DEBUG,
                         format="%(filename)s:%(lineno)s - %(message)s")
 
-    transform_all(args.data_dir, args.augment_level)
+    # load and transform from the original data
+    image_dataset = load_transform(args.data_dir, args.augment_level)
+
+    # plot a random sample of the images and its transformations
+    indices = np.random.choice(len(image_dataset), args.n_samples)
+    for i in indices:
+        plot_images(image_dataset[i][0])
+        # imgs_tensor = [transforms.ToTensor()(img) for img in image_dataset[i][0]]
+        # patches = [extract_patches(img_t) for img_t in imgs_tensor]
+        # plot_images([transforms.ToPILImage()(p[0, :, :]) for p in patches])

@@ -7,15 +7,15 @@ from torch import nn
 from torch import optim
 from torch.nn import functional as F
 
-from dcscn.utils import (compute_psnr_and_ssim,
-                         bicubic_upsampling,
-                         quad_to_image)
+from dcscn import (compute_psnr_and_ssim,
+                   bicubic_upsampling,
+                   quad_to_image)
 
 
 logger = logging.getLogger(__name__)
 
 
-# TODO: Add CNN weights penaty to the loss function
+# TODO: Add CNN weights penalty to the loss function
 
 
 class DCSCN(nn.Module):
@@ -201,6 +201,6 @@ if __name__ == "__main__":
     x = x.cuda()
     print(x.is_cuda)
 
-    print(model.forward(x).data.shape)
+    # print(model.forward(x).data.shape)
 
-    # summary(model.cuda(), (1, 255, 255))
+    summary(model.cuda(), (1, 255, 255))
