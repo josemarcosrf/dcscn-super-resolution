@@ -7,9 +7,8 @@ from torch import nn
 from torch import optim
 from torch.nn import functional as F
 
-from dcscn import (compute_psnr_and_ssim,
-                   bicubic_upsampling,
-                   quad_to_image)
+from dcscn import compute_psnr_and_ssim
+from dcscn.data_utils import quad_to_image
 
 
 logger = logging.getLogger(__name__)

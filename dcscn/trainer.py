@@ -8,6 +8,8 @@ from collections import defaultdict
 from ai_utils.mutils import save_model
 from ai_utils.tf_logger import Logger
 
+logger = logging.getLogger(__name__)
+
 # this breaks the logging misserably....
 # from tensorboardX import SummaryWriter
 # writer = SummaryWriter()
@@ -43,20 +45,14 @@ class Trainer:
                     'save_name': 'default'
                 }
         """
-
-        # TODO: get logger passed instead of creating a new one here!?
-        self.logger = logging.getLogger(__name__)
-        coloredlogs.install(level=logging.DEBUG, logger=self.logger,
-                            format="%(filename)s:%(lineno)s - %(message)s")
-
-        self.logger.info("Model received: {}".format(model))
+        logger.info("Model received: {}".format(model))
         self.model = model
         self.batcher = batcher
 
         self.train_cfg = train_cfg
 
         if train_cfg.use_cuda:
-            self.logger.info("Moving model to CUDA device")
+            logger.info("Moving model to CUDA device")
             self.model.cuda()
 
         # this must be called after moving the model to CPU or GPU
@@ -85,13 +81,9 @@ class Trainer:
 
             # iterate over all batches
             for b, train_batch in enumerate(tqdm(
-                    self.batcher.get_train_batch(self.train_cfg.batch_size)
+                    self.batcher.get_training_batches(self.train_cfg.batch_size)
             )):
                 batch_x, batch_y = train_batch
-
-                # self.logger.debug("word inputs: {}".format(np.array(batch_x).shape))
-                # self.logger.debug("targets: {}".format(np.array(batch_y).shape))
-
                 epoch_loss += self.model.train_batch(
                     batch_x,
                     batch_y,
@@ -116,10 +108,8 @@ class Trainer:
                     )
                     for k, v in res.items():
                         val_metrics[k] += v
-                        # self.logger.debug("{} -> {} | total: {}".format(k, v, res[k]))
 
                 msgs = []
-                # self.logger.debug("b+1={}".format(b + 1))
                 for k, v in val_metrics.items():
                     val_metrics[k] = v / (b + 1)
                     msgs.append("{}: {:.3f}".format(k, val_metrics[k]))
@@ -135,19 +125,23 @@ class Trainer:
                     tqdm.write('Saving model as: {}'.format(checkpoint_name))
                     save_model(self.model, self.train_cfg.checkpoint_path, checkpoint_name)
 
-                # Basic early stopping on validation accuracy TODO: configurable to track different metrics
+                # Basic early stopping on validation accuracy
+                # TODO: configurable to track different metrics
                 if self.train_cfg.patience:
                     ctrl_measures.append(val_metrics[control_metric])
                     ctrl_measures = ctrl_measures[-self.train_cfg.patience:]
                     if len(ctrl_measures) >= self.train_cfg.patience:
-                        if all([a > b for a, b in zip(ctrl_measures[:-1], ctrl_measures[1:])]):
-                            self.logger.warning(
+                        if all([a > b
+                                for a, b in zip(ctrl_measures[:-1],
+                                                ctrl_measures[1:])]):
+                            logger.warning(
                                 "Early stopping due to accuracy decrease"
                                 " for the last {} evaluations".format(self.train_cfg.patience)
                             )
                             break
-                        elif all([np.isclose(a, b, atol=1e-4) for a, b in zip(ctrl_measures[:-1], ctrl_measures[1:])]):
-                            self.logger.warning(
+                        elif all([np.isclose(a, b, atol=1e-4)
+                                  for a, b in zip(ctrl_measures[:-1], ctrl_measures[1:])]):
+                            logger.warning(
                                 "Early stopping due to accuracy stagnation"
                                 " for the last {} evaluations".format(self.train_cfg.patience)
                             )
@@ -169,8 +163,8 @@ class Trainer:
                     self.tf_logger.histo_summary(tag, to_numpy(value), epoch + 1)
                     self.tf_logger.histo_summary(tag + '/grad', to_numpy(value.grad), epoch + 1)
                 except Exception as e:
-                    self.logger.exception(e)
-                    self.logger.error("tag {}".format(tag))
+                    logger.exception(e)
+                    logger.error("tag {}".format(tag))
 
             train_loss += epoch_loss
 

@@ -10,14 +10,10 @@ from torchvision import transforms
 from torchvision.datasets import ImageFolder
 
 from dcscn.data_utils import (plot_images,
-                              convert_rgb_to_ycbcr,
-                              convert_to_grayscale)
+                              convert_rgb_to_ycbcr)
 
 
 logger = logging.getLogger(__name__)
-
-
-# TODO: Convert images to 1 channel Y from YCbCr or grascale
 
 
 class DataLoader():
@@ -44,7 +40,7 @@ class DataLoader():
             # load data and apply transformations
             dataset = ImageFolder(
                 root=self.data_dir,
-                transform=lambda x: self.apply_transform(x))
+                transform=lambda x: self._apply_transform(x))
 
             # In this case we don't care about the label
             total_imgs = sum(len(imgs) for imgs, _ in dataset)
@@ -56,30 +52,18 @@ class DataLoader():
             logger.error("Error while applying tranformations")
             logger.exception(e)
 
-    def apply_transform(self, img, to_tensor=True):
+    def _apply_transform(self, img, to_tensor=True):
         """Applies a set of transformations on a given PIL image."""
         img = convert_rgb_to_ycbcr(img)
         if to_tensor:
+            # apply augmentations & for each image
+            # convert to tensor and keep only the Y channel
             return [transforms.Compose([
                 augmentation_trf,
                 transforms.ToTensor()
                 ])(img)[0, :, :] for augmentation_trf in self.augmentations]
         return [taugmentation_trf(img)
                 for taugmentation_trf in self.augmentations]
-
-    def _extract_patches(self, img_tensor, size=32, step=16):
-        """Given an tensor representing a 1-channel image
-        extracts patches of size 'size' with steps of size 'step'.
-
-        Arguments:
-            img_tensor {Tensor} -- Representing an image with only 1 channel
-
-        Returns:
-            Tensor -- of shape B x size x size
-        """
-        return img_tensor[0, :, :].unfold(0, size=size, step=step) \
-            .unfold(1, size=size, step=step) \
-            .reshape(-1, size, size)
 
     def _build_augmentations(self):
         if self.augment_level < 2:
@@ -145,6 +129,11 @@ if __name__ == '__main__':
     indices = np.random.choice(len(image_dataset), args.n_samples)
     for i in indices:
         plot_images(image_dataset[i][0])
-        # imgs_tensor = [transforms.ToTensor()(img) for img in image_dataset[i][0]]
-        # patches = [extract_patches(img_t) for img_t in imgs_tensor]
-        # plot_images([transforms.ToPILImage()(p[0, :, :]) for p in patches])
+
+    all_patches = [loader.extract_patches(img_tensor)
+                   for images, _ in image_dataset
+                   for img_tensor in images]
+
+    logger.info("Extracted a total of {} patches".format(
+        sum([p.shape[0] for p in all_patches])
+    ))
