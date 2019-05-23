@@ -20,29 +20,50 @@ class DataBatcher():
 
     def __init__(self, train_dir, test_dir,
                  scale_factor=2, patch_size=64, stride=32):
+        self.train_dir = train_dir
+        self.test_dir = test_dir
         self.stride = stride
         self.patch_size = patch_size
         self.scale_factor = scale_factor
 
-        # initialize the dataloader for the train set
-        training_dataset = DataLoader(train_dir).load_transform()
+        self._build_dataset()
 
+    def _build_dataset(self):
+        # initialize the dataloader for the train set
+        training_dataset = DataLoader(self.train_dir).load_transform()
+
+        # build training inputs and outputs
         logger.info("Extracting training patches")
-        self.training_patches = self._get_image_patches(training_dataset)
+        self.training_outputs = self._get_image_patches(training_dataset)
         logger.info("Extracted a total of {} "
                     "training patches "
-                    "with shape {}".format(self.training_patches.shape[0],
-                                           self.training_patches.shape[1:]))
+                    "with shape {}".format(self.training_outputs.shape[0],
+                                           self.training_outputs.shape[1:]))
 
-        # # initialize the dataloader for the test set
-        # test_dataset = DataLoader(test_dir).load_transform()
+        self.training_inputs = self._build_inputs(self.training_outputs)
 
-        # logger.info("Extracting testing patches")
-        # self.testing_patches = self._get_image_patches(test_dataset)
-        # logger.info("Extracted a total of {} "
-        #             "testing patches "
-        #             "with shape {}".format(self.testing_patches.shape[0],
-        #                                    self.testing_patches.shape[1:]))
+
+        # initialize the dataloader for the test set
+        test_dataset = DataLoader(self.test_dir).load_transform()
+
+        # build testing inputs and outputs
+        logger.info("Extracting testing patches")
+        self.testing_outputs = self._get_image_patches(test_dataset)
+        logger.info("Extracted a total of {} "
+                    "testing patches "
+                    "with shape {}".format(self.testing_outputs.shape[0],
+                                           self.testing_outputs.shape[1:]))
+
+        self.testing_inputs = self._build_inputs(self.testing_outputs)
+
+    def _build_inputs(self, output_imgs):
+        # A training input sample is a downsampled image
+        logger.info("Building downsampled inputs by bicubic interpolation")
+        s_factor = 1.0 / self.scale_factor
+        return np.concatenate([
+            add_channel_dim(bicubic_interpolation(x, s_factor))
+            for x in output_imgs
+        ])
 
     def _get_image_patches(self, dataset):
         """Generate all patches and create a numpy tensor of
@@ -82,20 +103,9 @@ class DataBatcher():
         Args:
             batch_size (int): size of each batch
         """
-        # A training sample is a downsampled image as X
-        # and the orginal patch as Y
-        s_factor = 1.0 / self.scale_factor
-        inputs = np.concatenate([
-            add_channel_dim(bicubic_interpolation(x, s_factor))
-            for x in self.training_patches
-        ])
-
-        logger.debug("Inputs are of shape: {}".format(inputs.shape))
-        logger.debug("Ouputs are of shape: {}".format(self.training_patches.shape))
-
         return zip(
-            chunk(inputs, batch_size),
-            chunk(self.training_patches, batch_size)
+            chunk(self.training_inputs, batch_size),
+            chunk(self.training_outputs, batch_size)
         )
 
     def get_val_batch(self, batch_size):
