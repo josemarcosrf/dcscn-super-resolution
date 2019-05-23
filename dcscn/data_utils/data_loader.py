@@ -4,10 +4,14 @@ import logging
 import coloredlogs
 
 import numpy as np
-import matplotlib.pyplot as plt
+
 
 from torchvision import transforms
 from torchvision.datasets import ImageFolder
+
+from dcscn.data_utils import (plot_images,
+                              convert_rgb_to_ycbcr,
+                              convert_to_grayscale)
 
 
 logger = logging.getLogger(__name__)
@@ -16,105 +20,95 @@ logger = logging.getLogger(__name__)
 # TODO: Convert images to 1 channel Y from YCbCr or grascale
 
 
-def plot_images(images):
-    n = len(images)
-    plt.figure()
-    for i, img in enumerate(images):
-        image = np.array(img)
-        ax = plt.subplot(1, n, i + 1)
-        plt.imshow(image, interpolation='none')
-        ax.set_title('Transform #{}'.format(i))
-        ax.axis('off')
+class DataLoader():
 
-    plt.show()
+    def __init__(self, data_dir, augment_level=4):
+        self.data_dir = data_dir
+        self.augment_level = augment_level
+        self.augmentations = None
+        self._build_augmentations()
 
+    def load_transform(self):
+        """Loads all images from a directory containing subdirectories with image files
+        and applies all tranformations rules for the given augmentation level.
 
-def convert_rgb_to_ycbcr(pil_img):
-    """Converts a given PIL image from RGB to YCbCr
-    """
-    return pil_img.convert('YCbCr')
+        Returns:
+            Dataset -- List of (List of PIL images, class label)
+        """
+        try:
 
+            sets = os.listdir(self.data_dir)
+            logger.info("Found the following datasets: {}".format(sets))
+            logger.info("Building {}-level augmented data.".format(self.augment_level))
 
-def convert_to_grayscale(pil_img):
-    return pil_img.convert('LA')
+            # load data and apply transformations
+            dataset = ImageFolder(
+                root=self.data_dir,
+                transform=lambda x: self.apply_transform(x))
 
+            # In this case we don't care about the label
+            total_imgs = sum(len(imgs) for imgs, _ in dataset)
+            logger.info("Total images after augmentation: {}".format(total_imgs))
 
-def build_transformations(augment_level):
-    if augment_level < 2:
-        raise ValueError("Augmentation level must be at least 2!")
+            return dataset
 
-    r1 = (90, 90)       # right rotation
-    r2 = (270, 270)     # left rotation
+        except Exception as e:
+            logger.error("Error while applying tranformations")
+            logger.exception(e)
 
-    # transformation names to save the images
-    names = ["_v", "_h", "_vh", "_r1", "_r2", "_r1v", "_r2v"]
+    def apply_transform(self, img, to_tensor=True):
+        """Applies a set of transformations on a given PIL image."""
+        img = convert_rgb_to_ycbcr(img)
+        if to_tensor:
+            return [transforms.Compose([
+                augmentation_trf,
+                transforms.ToTensor()
+                ])(img)[0, :, :] for augmentation_trf in self.augmentations]
+        return [taugmentation_trf(img)
+                for taugmentation_trf in self.augmentations]
 
-    # array of torchvision transformations
-    transformations = [
-        # none transformation
-        lambda x: x,
-        # vertical and horizontal flip
-        transforms.RandomVerticalFlip(1),
-        transforms.RandomHorizontalFlip(1),
-        # compistion of H + V flips
-        transforms.Compose([
+    def _extract_patches(self, img_tensor, size=32, step=16):
+        """Given an tensor representing a 1-channel image
+        extracts patches of size 'size' with steps of size 'step'.
+
+        Arguments:
+            img_tensor {Tensor} -- Representing an image with only 1 channel
+
+        Returns:
+            Tensor -- of shape B x size x size
+        """
+        return img_tensor[0, :, :].unfold(0, size=size, step=step) \
+            .unfold(1, size=size, step=step) \
+            .reshape(-1, size, size)
+
+    def _build_augmentations(self):
+        if self.augment_level < 2:
+            raise ValueError("Augmentation level must be at least 2.")
+
+        r1 = (90, 90)       # right rotation range
+        r2 = (270, 270)     # left rotation range
+
+        # array of torchvision transformations
+        self.augmentations = [
+            # none transformation
+            lambda x: x,
+            # vertical and horizontal flip
             transforms.RandomVerticalFlip(1),
             transforms.RandomHorizontalFlip(1),
-        ]),
-        # rotations
-        transforms.RandomRotation(r1),
-        transforms.RandomRotation(r2),
-        # rotation + vertical flips
-        transforms.Compose([transforms.RandomRotation(r1),
-                            transforms.RandomVerticalFlip(1)]),
-        transforms.Compose([transforms.RandomRotation(r2),
-                            transforms.RandomVerticalFlip(1)]),
-    ]
-
-    return names[:augment_level], transformations[:augment_level]
-
-
-def apply_transform(transformations, img, to_tensor=False):
-    """applies a set of transformations on a given PIL image
-    """
-    if to_tensor:
-        return [transforms.Compose([t, transforms.ToTensor()])(img)
-                for t in transformations]
-    return [t(img)
-            for t in transformations]
-
-
-def load_transform(directory, augment_level):
-    try:
-
-        sets = os.listdir(directory)
-        logger.info("Found the following datasets: {}".format(sets))
-
-        logger.info("Building {}-level augmented data.".format(augment_level))
-        trf_names, transformations = build_transformations(augment_level)
-
-        # load data and apply transformations
-        train_data = ImageFolder(
-            root=directory,
-            transform=lambda x: apply_transform(transformations, x)
-        )
-
-        # In this case we don't care about the label
-        total_imgs = sum(len(imgs) for imgs, _ in train_data)
-        logger.info("Total images after augmentation: {}".format(total_imgs))
-
-        return train_data
-
-    except Exception as e:
-        logger.error("Error while applying tranformations")
-        logger.exception(e)
-
-
-def extract_patches(img_tensor, size=32, step=16):
-    logger.debug("img_tensor shape: {}".format(img_tensor.shape))
-    return img_tensor[0, :, :].unfold(0, size=size, step=step) \
-        .unfold(1, size=size, step=step) \
-        .reshape(-1, size, size)
+            # compistion of H + V flips
+            transforms.Compose([
+                transforms.RandomVerticalFlip(1),
+                transforms.RandomHorizontalFlip(1),
+            ]),
+            # rotations
+            transforms.RandomRotation(r1),
+            transforms.RandomRotation(r2),
+            # rotation + vertical flips
+            transforms.Compose([transforms.RandomRotation(r1),
+                                transforms.RandomVerticalFlip(1)]),
+            transforms.Compose([transforms.RandomRotation(r2),
+                                transforms.RandomVerticalFlip(1)]),
+        ][:self.augment_level]
 
 
 def get_args():
@@ -144,7 +138,8 @@ if __name__ == '__main__':
                         format="%(filename)s:%(lineno)s - %(message)s")
 
     # load and transform from the original data
-    image_dataset = load_transform(args.data_dir, args.augment_level)
+    loader = DataLoader(args.data_dir, args.augment_level)
+    image_dataset = loader.load_transform()
 
     # plot a random sample of the images and its transformations
     indices = np.random.choice(len(image_dataset), args.n_samples)
