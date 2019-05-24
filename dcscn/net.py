@@ -182,6 +182,10 @@ class DCSCN(nn.Module):
     def make_optimizer(self, lr):
         self.optimizer = optim.Adam(params=self.parameters(), lr=lr)
 
+    def print_summary(self):
+        from torchsummary import summary
+        summary(self, (1, 64, 64))
+
     def _build_conv_set(self, in_channels, out_channels, kernel):
         return nn.Sequential(nn.Conv2d(in_channels, out_channels,
                                        stride=1, padding=1,
@@ -199,16 +203,17 @@ class DCSCN(nn.Module):
 if __name__ == "__main__":
 
     import numpy as np
-    from torchsummary import summary
 
     model = DCSCN({})
+    model.print_summary()
+
     if torch.cuda.is_available():
         model.cuda()
 
+    # try some random input
     x = torch.FloatTensor(np.random.rand(1, 1, 32, 32))
     x = x.cuda()
     print(x.is_cuda)
+    print(model.forward(x).data.shape)
 
-    # print(model.forward(x).data.shape)
 
-    summary(model.cuda(), (1, 255, 255))

@@ -76,7 +76,9 @@ class DataBatcher():
         # TODO: Normalization values for the image not just divide by 255!!!
         s_factor = 1.0 / self.scale_factor
         return np.concatenate([
-            add_channel_dim(bicubic_interpolation(x, s_factor)) / 255
+            add_channel_dim(
+                bicubic_interpolation(x, s_factor)[0][None, :, :]
+            ) / 255
             for x in output_imgs
         ])
 
@@ -118,19 +120,12 @@ class DataBatcher():
         Args:
             batch_size (int): size of each batch
         """
-
-        logger.debug("Inputs value range: ({}, {})".format(
-            np.min(self.training_inputs[0]),
-            np.max(self.training_inputs[0])
-        ))
-        logger.debug("Ouputs value range: ({}, {})".format(
-            np.min(self.training_outputs[0]),
-            np.max(self.training_outputs[0])
-        ))
-
         # convert data to torch.Tensor before batching
         self.training_inputs = to_tensor(self.training_inputs)
         self.training_outputs = to_tensor(self.training_outputs)
+
+        logger.debug("{} input batches available".format(self.training_inputs.shape))
+        logger.debug("{} output batches available".format(self.training_outputs.shape))
 
         return zip(
             chunk(self.training_inputs, batch_size, torch.stack),

@@ -22,6 +22,7 @@ default_config = {
     'eval_data_path': './data/mini/eval',
     'tf_log_dir': './logs',
     'checkpoint_path': './checkpoints',
+    'eval_every': 10,
     'patience': 5,
     'save_name': 'default'
 }

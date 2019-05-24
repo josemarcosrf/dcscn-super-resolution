@@ -44,7 +44,12 @@ class Trainer:
                     'save_name': 'default'
                 }
         """
-        logger.info("Model received: {}".format(model))
+        logger.info("Model received:")
+        try:
+            model.print_summary()
+        except expression as identifier:
+            logger.info(model)
+
         self.model = model
         self.batcher = batcher
 
