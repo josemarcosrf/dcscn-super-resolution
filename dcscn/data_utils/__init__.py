@@ -31,7 +31,7 @@ def bicubic_interpolation(image_arr, scale_factor):
     new_w = int(w * scale_factor)
     image = Image.fromarray(image_arr.swapaxes(0, 2), "RGB")
     image = image.resize([new_w, new_h], resample=Image.BICUBIC)
-    return np.asarray(image).swapaxes(0, 2)
+    return np.asarray(image, dtype=np.float32).swapaxes(0, 2)
 
 
 def quad_to_image(quad):
@@ -78,7 +78,7 @@ def add_channel_dim(img_arr):
     return img_arr[:, None, :, :]
 
 
-def chunk(iterable, c_size):
+def chunk(iterable, c_size, stack_func=np.stack):
     """
     Given an iterable yields chunks of size 'c_size'.
     The iterable can be an interator, we do not assume iterable to have 'len' method.
@@ -93,7 +93,7 @@ def chunk(iterable, c_size):
         chunk = list(islice(it, c_size))
         if not chunk:
             return
-        yield np.stack(chunk)
+        yield stack_func(chunk)
 
 
 def parallel_shuffle(*args):
@@ -128,18 +128,3 @@ def parallel_split(split_ratio, *args):
         all_outputs.append((a[:split_idx], a[split_idx:]))
     return all_outputs
 
-
-class dotdict(dict):
-    """dot.notation access to dictionary attributes"""
-
-    def __getattr__(self, attr):
-        return self.get(attr)
-    __setattr__ = dict.__setitem__
-    __delattr__ = dict.__delitem__
-
-    def __getstate__(self):
-        return self
-
-    def __setstate__(self, state):
-        self.update(state)
-        self.__dict__ = self

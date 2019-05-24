@@ -5,31 +5,30 @@ import numpy as np
 from tqdm import tqdm
 from collections import defaultdict
 
-from ai_utils.mutils import save_model
-from ai_utils.tf_logger import Logger
+from dcscn import to_numpy
+from dcscn.model_utils.tf_logger import Logger
+from dcscn.model_utils import save_model
 
 logger = logging.getLogger(__name__)
+
+# configure the logger
+coloredlogs.install(logger=logger,
+                    level=logging.DEBUG,
+                    format="%(filename)s:%(lineno)s - %(message)s")
 
 # this breaks the logging misserably....
 # from tensorboardX import SummaryWriter
 # writer = SummaryWriter()
 
 
-def to_numpy(t):
-    """
-    Torch Tensor Variable to numpy array
-    Args:
-        t (torch.autograd.Variable): Variable tensor to convert
-    Returns:
-        numpy array with t data
-    """
-    return t.data.cpu().numpy()
-
-
 class Trainer:
 
     def __init__(self, model, batcher, train_cfg):
-        """
+        """Trainer helper class.
+        Given a pytorch.nn.module and a data 'Batcher' train the model using
+        the 'train_cfg' configuration.
+        The 'model' must expose 'train_batch' and 'eval_batch' functions.
+        The 'batcher' must expose 'get_training_batches' and 'get_test_batches' functions.
 
         Args:
             model (nn.Module): model to be trained
@@ -77,7 +76,8 @@ class Trainer:
         for epoch in epochs_it:
             self.model.train()
             epoch_loss = 0
-            epochs_it.set_description("epoch {} - loss: {:.3f}".format(epoch, epoch_loss))
+            epochs_it.set_description("epoch {} - loss: {:.3f}".format(epoch,
+                                                                       epoch_loss))
 
             # iterate over all batches
             for b, train_batch in enumerate(tqdm(

@@ -1,13 +1,19 @@
 import logging
 import coloredlogs
+import torch
 import numpy as np
 
+from dcscn import to_tensor
 from dcscn.data_utils.data_loader import DataLoader
 from dcscn.data_utils import (chunk,
                               add_channel_dim,
                               bicubic_interpolation)
 
 logger = logging.getLogger(__name__)
+
+# configure the logger
+coloredlogs.install(logger=logger, level=logging.DEBUG,
+                    format="%(filename)s:%(lineno)s - %(message)s")
 
 
 class DataBatcher():
@@ -42,7 +48,6 @@ class DataBatcher():
 
         self.training_inputs = self._build_inputs(self.training_outputs)
 
-
         # initialize the dataloader for the test set
         test_dataset = DataLoader(self.test_dir).load_transform()
 
@@ -57,16 +62,26 @@ class DataBatcher():
         self.testing_inputs = self._build_inputs(self.testing_outputs)
 
     def _build_inputs(self, output_imgs):
+        """Builds inputs by downsampling the output images.
+        Expects a list of np.arrays representing images
+        Args:
+            output_imgs (list): of np.arrays of shape (N x H x W)
+
+        Returns:
+            np.array: containing image patches (N x 1 x H x W)
+        """
         # A training input sample is a downsampled image
         logger.info("Building downsampled inputs by bicubic interpolation")
+
+        # TODO: Normalization values for the image not just divide by 255!!!
         s_factor = 1.0 / self.scale_factor
         return np.concatenate([
-            add_channel_dim(bicubic_interpolation(x, s_factor))
+            add_channel_dim(bicubic_interpolation(x, s_factor)) / 255
             for x in output_imgs
         ])
 
     def _get_image_patches(self, dataset):
-        """Generate all patches and create a numpy tensor of
+        """Generate all patches and create a np.array of
         shape N x 1 x H x W
         Then we shuffle along the first axis (along the patches)
 
@@ -103,9 +118,23 @@ class DataBatcher():
         Args:
             batch_size (int): size of each batch
         """
+
+        logger.debug("Inputs value range: ({}, {})".format(
+            np.min(self.training_inputs[0]),
+            np.max(self.training_inputs[0])
+        ))
+        logger.debug("Ouputs value range: ({}, {})".format(
+            np.min(self.training_outputs[0]),
+            np.max(self.training_outputs[0])
+        ))
+
+        # convert data to torch.Tensor before batching
+        self.training_inputs = to_tensor(self.training_inputs)
+        self.training_outputs = to_tensor(self.training_outputs)
+
         return zip(
-            chunk(self.training_inputs, batch_size),
-            chunk(self.training_outputs, batch_size)
+            chunk(self.training_inputs, batch_size, torch.stack),
+            chunk(self.training_outputs, batch_size, torch.stack)
         )
 
     def get_val_batch(self, batch_size):
@@ -113,9 +142,6 @@ class DataBatcher():
 
 
 if __name__ == "__main__":
-    # configure the logger
-    coloredlogs.install(logger=logger, level=logging.DEBUG,
-                        format="%(filename)s:%(lineno)s - %(message)s")
 
     batcher = DataBatcher("data/train", "data/eval")
 

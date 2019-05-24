@@ -13,6 +13,10 @@ from dcscn.data_utils import quad_to_image
 
 logger = logging.getLogger(__name__)
 
+# configure the logger
+coloredlogs.install(logger=logger, level=logging.INFO,
+                    format="%(filename)s:%(lineno)s - %(message)s")
+
 
 # TODO: Add CNN weights penalty to the loss function
 
@@ -151,9 +155,18 @@ class DCSCN(nn.Module):
         )
 
     def train_batch(self, batch_x, batch_y, use_cuda=False):
+
+        logger.debug("Received x ({})"
+                     " with shape: {}".format(batch_x.dtype, batch_x.shape))
+        logger.debug("Received y ({})"
+                     " with shape: {}".format(batch_y.dtype, batch_y.shape))
+
         # Reset gradients
-        self.fc.zero_grad()
+        self.zero_grad()
         # forward pass
+        if use_cuda:
+            batch_x = batch_x.cuda()
+            batch_y = batch_y.cuda()
         output = self.forward(batch_x)
         loss = F.mse_loss(output, batch_y)
         # backward pass
@@ -184,10 +197,6 @@ class DCSCN(nn.Module):
 
 
 if __name__ == "__main__":
-
-    # configure the logger
-    coloredlogs.install(logger=logger, level=logging.DEBUG,
-                        format="%(filename)s:%(lineno)s - %(message)s")
 
     import numpy as np
     from torchsummary import summary
