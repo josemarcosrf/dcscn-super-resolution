@@ -53,4 +53,4 @@ if __name__ == "__main__":
     # configure the training (default training parameters)
     logger.info("Building trainer and starting training")
     trainer = Trainer(model, batcher, conf)
-    trainer.train(control_metric='mse')
+    trainer.train(control_metric='psnr')

@@ -19,6 +19,17 @@ coloredlogs.install(logger=logger, level=logging.INFO,
 
 
 # TODO: Add CNN weights penalty to the loss function
+# TODO: Add initialization to all CNN meights before PReLU:
+# https://pytorch.org/docs/master/nn.html#torch.nn.init.kaiming_uniform_
+# PReLu and bias to 0
+# CNN with torch.nn.init.kaiming_uniform_
+
+
+def weights_init(m):
+    if isinstance(m, nn.Conv2d) or isinstance(m, nn.ConvTranspose2d):
+        logger.debug("Initializing {}".format(m))
+        nn.init.kaiming_uniform_(m.weight, a=0)
+        nn.init.zeros_(m.bias)
 
 
 class DCSCN(nn.Module):
@@ -53,6 +64,7 @@ class DCSCN(nn.Module):
 
         self._set_parameters(params)
         self._build_model()
+        self.apply(weights_init)
 
     def _set_parameters(self, params):
         params = self.default_params
