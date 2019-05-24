@@ -65,7 +65,7 @@ class Trainer:
         # Set the TF logger
         self.tf_logger = Logger(train_cfg.tf_log_dir)
 
-    def train(self, control_metric='val_acc'):
+    def train(self, control_metric):
         """
         Trains the given model with the batches provided by the batcher
 
@@ -76,17 +76,17 @@ class Trainer:
         epochs_it = tqdm(range(self.train_cfg.num_epochs))
         epoch_loss = float('inf')
         train_loss = 0
+        epoch_loss = 0
         best_measure = 0
         ctrl_measures = []
         for epoch in epochs_it:
             self.model.train()
-            epoch_loss = 0
-            epochs_it.set_description("epoch {} - loss: {:.3f}".format(epoch,
-                                                                       epoch_loss))
+            epochs_it.set_description("epoch {} - "
+                                      "loss: {:.3f}".format(epoch, epoch_loss))
 
             # iterate over all batches
             for b, train_batch in enumerate(tqdm(
-                    self.batcher.get_training_batches(self.train_cfg.batch_size)
+                self.batcher.get_training_batches(self.train_cfg.batch_size)
             )):
                 batch_x, batch_y = train_batch
                 epoch_loss += self.model.train_batch(
@@ -125,10 +125,13 @@ class Trainer:
                     best_measure = val_metrics[control_metric]
                     # save the model
                     checkpoint_name = "{}_epoch={}_{}={:.3f}".format(
-                        self.train_cfg.save_name, epoch, control_metric, best_measure
+                        self.train_cfg.save_name, epoch,
+                        control_metric, best_measure
                     )
                     tqdm.write('Saving model as: {}'.format(checkpoint_name))
-                    save_model(self.model, self.train_cfg.checkpoint_path, checkpoint_name)
+                    save_model(self.model,
+                               self.train_cfg.checkpoint_path,
+                               checkpoint_name)
 
                 # Basic early stopping on validation accuracy
                 # TODO: configurable to track different metrics
@@ -141,14 +144,16 @@ class Trainer:
                                                 ctrl_measures[1:])]):
                             logger.warning(
                                 "Early stopping due to accuracy decrease"
-                                " for the last {} evaluations".format(self.train_cfg.patience)
-                            )
+                                " for the last {} evaluations"
+                                "".format(self.train_cfg.patience))
                             break
                         elif all([np.isclose(a, b, atol=1e-4)
-                                  for a, b in zip(ctrl_measures[:-1], ctrl_measures[1:])]):
+                                  for a, b in zip(ctrl_measures[:-1],
+                                                  ctrl_measures[1:])]):
                             logger.warning(
                                 "Early stopping due to accuracy stagnation"
-                                " for the last {} evaluations".format(self.train_cfg.patience)
+                                " for the last {} evaluations"
+                                "".format(self.train_cfg.patience)
                             )
                             break
 

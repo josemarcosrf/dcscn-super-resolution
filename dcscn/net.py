@@ -7,7 +7,7 @@ from torch import nn
 from torch import optim
 from torch.nn import functional as F
 
-from dcscn import compute_psnr_and_ssim
+from dcscn import to_numpy, compute_psnr_and_ssim
 from dcscn.data_utils import quad_to_image
 
 
@@ -91,7 +91,8 @@ class DCSCN(nn.Module):
 
         # concatenation 1: through filter dimensions
         x = torch.cat(features, 1)
-        logger.debug("Concatenation - before reconstruction: {}".format(x.data.shape))
+        logger.debug("Concatenation - "
+                     "before reconstruction: {}".format(x.data.shape))
 
         # reconstruction part
         a1_out = self.reconstruction['A1'].forward(x)
@@ -108,7 +109,8 @@ class DCSCN(nn.Module):
         x = self.l_conv.forward(x)      # outputs a quad-image
 
         # network output + bicubic upsampling:
-        # the 4 channels of the output represent the 4 corners of the resulting image
+        # the 4 channels of the output represent the 4 corners
+        # of the resulting image
         x = quad_to_image(x) + x_up
 
         return x
@@ -177,7 +179,23 @@ class DCSCN(nn.Module):
         return loss.data.cpu()
 
     def eval_batch(self, batch_x, batch_y, use_cuda=False):
-        raise NotImplementedError("eval_batch not implemented yet...")
+        logger.debug("Received x ({})"
+                     " with shape: {}".format(batch_x.dtype, batch_x.shape))
+        logger.debug("Received y ({})"
+                     " with shape: {}".format(batch_y.dtype, batch_y.shape))
+
+        metrics = {}
+
+        if use_cuda:
+            batch_x = batch_x.cuda()
+            batch_y = batch_y.cuda()
+        output = self.forward(batch_x)
+        loss = F.mse_loss(output, batch_y)
+
+        # compute evaluation metrics
+        metrics['mse'] = loss.data.cpu()
+        metrics['psnr'], metrics['ssim'] = self._eval_metrics(output, batch_y)
+        return metrics
 
     def make_optimizer(self, lr):
         self.optimizer = optim.Adam(params=self.parameters(), lr=lr)
@@ -186,6 +204,22 @@ class DCSCN(nn.Module):
         from torchsummary import summary
         summary(self, (1, 64, 64))
 
+    def _eval_metrics(self, outputs, targets):
+        # rescale to 255
+        # TODO: Review proper rescaling
+        outputs *= 255
+        targets *= 255
+
+        # convert to numpy an remove channel dimension
+        total_psnr = total_ssim = 0
+        for out, y in zip(to_numpy(outputs), to_numpy(targets)):
+            psnr, ssim = compute_psnr_and_ssim(out[0, :, :], y[0, :, :])
+            total_psnr += psnr
+            total_ssim += ssim
+
+        n = outputs.shape[0]
+        return total_psnr / n, total_ssim / n
+
     def _build_conv_set(self, in_channels, out_channels, kernel):
         return nn.Sequential(nn.Conv2d(in_channels, out_channels,
                                        stride=1, padding=1,
@@ -193,9 +227,11 @@ class DCSCN(nn.Module):
                              nn.PReLU(),
                              nn.Dropout(p=self.dropout))
 
-    def _build_reconstruction_conv(self, in_channels, out_channels, kernel, padding=0):
+    def _build_reconstruction_conv(self, in_channels,
+                                   out_channels, kernel, padding=0):
         return nn.Sequential(nn.ConvTranspose2d(in_channels, out_channels,
-                                                padding=padding, kernel_size=kernel),
+                                                padding=padding,
+                                                kernel_size=kernel),
                              nn.PReLU(),
                              nn.Dropout(p=self.dropout))
 

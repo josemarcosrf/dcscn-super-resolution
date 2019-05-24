@@ -12,7 +12,7 @@ from dcscn.data_utils import (chunk,
 logger = logging.getLogger(__name__)
 
 # configure the logger
-coloredlogs.install(logger=logger, level=logging.DEBUG,
+coloredlogs.install(logger=logger, level=logging.INFO,
                     format="%(filename)s:%(lineno)s - %(message)s")
 
 
@@ -114,26 +114,40 @@ class DataBatcher():
             .reshape(-1, self.patch_size, self.patch_size)
 
     def get_training_batches(self, batch_size):
-        """Returns an iterator yielding a chunk (batch) of tuples containing
-        inut and target.
+        """Returns an iterator yielding a chunk (batch) of training
+        tuples containing inputs and targets.
 
         Args:
             batch_size (int): size of each batch
         """
-        # convert data to torch.Tensor before batching
-        self.training_inputs = to_tensor(self.training_inputs)
-        self.training_outputs = to_tensor(self.training_outputs)
+        return self._get_batches(self.training_inputs,
+                                 self.training_outputs,
+                                 batch_size)
 
-        logger.debug("{} input batches available".format(self.training_inputs.shape))
-        logger.debug("{} output batches available".format(self.training_outputs.shape))
-
-        return zip(
-            chunk(self.training_inputs, batch_size, torch.stack),
-            chunk(self.training_outputs, batch_size, torch.stack)
-        )
 
     def get_val_batch(self, batch_size):
-        pass
+        """Returns an iterator yielding a chunk (batch) of evaluations
+        tuples containing inputs and targets.
+
+        Args:
+            batch_size (int): size of each batch
+        """
+        return self._get_batches(self.testing_inputs,
+                                 self.testing_outputs,
+                                 batch_size)
+
+    def _get_batches(self, inputs, outputs, batch_size):
+        # convert data to torch.Tensor before batching
+        inputs = to_tensor(inputs)
+        outputs = to_tensor(outputs)
+
+        logger.debug("{} input batches available".format(inputs.shape))
+        logger.debug("{} output batches available".format(outputs.shape))
+
+        return zip(
+            chunk(inputs, batch_size, torch.stack),
+            chunk(outputs, batch_size, torch.stack)
+        )
 
 
 if __name__ == "__main__":

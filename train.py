@@ -2,7 +2,9 @@ import logging
 import coloredlogs
 import torch
 
-from dcscn import dotdict
+from dcscn import (dotdict, to_numpy,
+                   compute_psnr_and_ssim)
+
 from dcscn.net import DCSCN
 from dcscn.trainer import Trainer
 from dcscn.data_utils.batcher import DataBatcher
@@ -22,7 +24,7 @@ default_config = {
     'eval_data_path': './data/mini/eval',
     'tf_log_dir': './logs',
     'checkpoint_path': './checkpoints',
-    'eval_every': 10,
+    'eval_every': 5,
     'patience': 5,
     'save_name': 'default'
 }
@@ -51,4 +53,4 @@ if __name__ == "__main__":
     # configure the training (default training parameters)
     logger.info("Building trainer and starting training")
     trainer = Trainer(model, batcher, conf)
-    trainer.train()
+    trainer.train(control_metric='mse')
