@@ -46,10 +46,13 @@ torchvision==0.2.2.post3
 ```
 ## How to
 
+Basic training of a model (default configuration)
+```bash
+    python train.py
+```
+
 ## TODO:
 
+* Adapt **trainer** to perform appropiate metric comparison to save model
 * Add typing all around the repo when appropiate
-* Implement training
-* Implement evaluations
-* Implement inference
 * Populate README
