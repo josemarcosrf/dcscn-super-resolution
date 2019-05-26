@@ -19,10 +19,6 @@ coloredlogs.install(logger=logger, level=logging.INFO,
 
 
 # TODO: Add CNN weights penalty to the loss function
-# TODO: Add initialization to all CNN meights before PReLU:
-# https://pytorch.org/docs/master/nn.html#torch.nn.init.kaiming_uniform_
-# PReLu and bias to 0
-# CNN with torch.nn.init.kaiming_uniform_
 
 
 def weights_init(m):

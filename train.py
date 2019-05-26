@@ -6,7 +6,8 @@ from dcscn import (dotdict, to_numpy,
                    compute_psnr_and_ssim)
 
 from dcscn.net import DCSCN
-from dcscn.trainer import Trainer
+from dcscn.trainer import (Trainer,
+                           MetricTracker)
 from dcscn.data_utils.batcher import DataBatcher
 
 
@@ -16,8 +17,8 @@ logger = logging.getLogger(__name__)
 # For now hardocded
 default_config = {
     'num_epochs': 100,
-    'initial_lr': 0.002,
     'lr': 0.002,
+    'minimum_lr': 0.00002,
     'batch_size': 64,
     'use_cuda': True,
     'train_data_path': './data/mini/train',
@@ -28,6 +29,14 @@ default_config = {
     'patience': 5,
     'save_name': 'default'
 }
+
+
+def create_trainer_helpers():
+    # MSE stagnation tracker
+    mse_stagnation_tracker = MetricTracker(
+        'mse', MetricTracker.is_stagnated, {'patience': 3, 'tolerance': 1e-4}
+    )
+    return mse_stagnation_tracker
 
 
 if __name__ == "__main__":
@@ -51,6 +60,9 @@ if __name__ == "__main__":
                           conf.eval_data_path)
 
     # configure the training (default training parameters)
+    logger.info("Building training helpers (MSE stagnation tracker)")
+    mse_stagnation_tracker = create_trainer_helpers()
     logger.info("Building trainer and starting training")
-    trainer = Trainer(model, batcher, conf)
-    trainer.train(control_metric='psnr')
+    trainer = Trainer(model, batcher, conf,
+                      lr_updater=mse_stagnation_tracker)
+    trainer.train()
