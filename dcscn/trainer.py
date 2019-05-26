@@ -28,7 +28,6 @@ class MetricTracker():
     def __init__(self, metric_name, checking_func, tracking_criteria):
         self.metric_name = metric_name
         self.checking_func = checking_func
-        self.best_measure = None
         self.tracking_criteria = tracking_criteria
 
     def check(self, val_metrics):
@@ -58,10 +57,6 @@ class MetricTracker():
                         for a, b in zip(
                             ctrl_measures[:-1],
                             ctrl_measures[1:])])
-            # logger.warning(
-            #     "Early stopping due to {} deterioration"
-            #     " for the last {} evaluations"
-            #     "".format(metric_name, patience))
         return False
 
     @classmethod
@@ -81,12 +76,6 @@ class MetricTracker():
         return all([np.isclose(a, b, atol=tolerance)
                     for a, b in zip(ctrl_measures[:-1],
                                     ctrl_measures[1:])])
-                # logger.warning(
-                #     "Early stopping due to {} stagnation"
-                #     " for the last {} evaluations"
-                #     "".format(metric_name, m.patience)
-                # )
-
 
 class Trainer:
 
@@ -122,11 +111,17 @@ class Trainer:
         logger.info("Model received:")
         try:
             model.print_summary()
-        except expression as identifier:
+        except Exception as e:
             logger.info(model)
 
         self.model = model
         self.batcher = batcher
+
+        # TODO: fixed number of Events for now
+        self.early_stop_checker = early_stop_checker
+        self.lr_updater = lr_updater
+        self.batch_size_updater = batch_size_updater
+        self.checkpointer = checkpointer
 
         self.train_cfg = train_cfg
 
@@ -149,7 +144,7 @@ class Trainer:
         Returns:
             trained model
         """
-        tracking_metrics = defaultdict([])
+        tracking_metrics = defaultdict(list)
         epoch_loss = float('inf')
         train_loss = 0
         epoch_loss = 0
@@ -158,30 +153,32 @@ class Trainer:
         for epoch in self.epochs_it:
             # train the entire epoch
             epoch_loss = self._train_epoch(epoch, epoch_loss)
+            train_loss += epoch_loss
 
             # evaluate on the entire evaluation set and save model
             if epoch % self.train_cfg.eval_every == 0:
-                val_metrics = self._eval(epoch, val_metrics)
+                val_metrics = self._eval(epoch)
                 for k, v in val_metrics.items():
                     tracking_metrics[k].append(v)
-
-                # check if early stopping
-                if self.early_stop_checker and \
-                        self.early_stop_checker.check(tracking_metrics):
-                    break
-
-                # check learning-rate updater
-                if self.lr_updater and \
-                        self.lr_updater.check(tracking_metrics):
-                    logger.warning("Here would be a LR update!")
 
             # TensorBoard logging
             self._log(val_metrics, epoch)
 
-            train_loss += epoch_loss
+            # ================ Training Checks - hardcoded for now ============
+            # check if we need to save the model
+            logger.warning("No checkpointing mechanism!")
 
-        # check if we need to save the model
-        logger.warning("No checkpointing mechanism!")
+            # check if early stopping
+            if self.early_stop_checker and \
+                    self.early_stop_checker.check(tracking_metrics):
+                logger.warning("Early stopping criteria met. Stopping!")
+                break
+
+            # check learning-rate updater
+            if self.lr_updater and \
+                    self.lr_updater.check(tracking_metrics):
+                logger.warning("Here would be a LR update!")
+            # ================ Training Checks ================================
 
         train_loss /= self.train_cfg.num_epochs
         return {
