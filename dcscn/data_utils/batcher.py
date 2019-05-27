@@ -24,13 +24,14 @@ class DataBatcher():
     Once the dataset is loaded creates image patches.
     """
 
-    def __init__(self, train_dir, test_dir,
+    def __init__(self, train_dir, test_dir, batch_size,
                  scale_factor=2, patch_size=64, stride=32):
         self.train_dir = train_dir
         self.test_dir = test_dir
         self.stride = stride
         self.patch_size = patch_size
         self.scale_factor = scale_factor
+        self.batch_size = batch_size
 
         self._build_dataset()
 
@@ -113,7 +114,7 @@ class DataBatcher():
             .unfold(1, size=self.patch_size, step=self.stride) \
             .reshape(-1, self.patch_size, self.patch_size)
 
-    def get_training_batches(self, batch_size):
+    def get_training_batches(self):
         """Returns an iterator yielding a chunk (batch) of training
         tuples containing inputs and targets.
 
@@ -122,10 +123,10 @@ class DataBatcher():
         """
         return self._get_batches(self.training_inputs,
                                  self.training_outputs,
-                                 batch_size)
+                                 self.batch_size)
 
 
-    def get_val_batch(self, batch_size):
+    def get_val_batch(self):
         """Returns an iterator yielding a chunk (batch) of evaluations
         tuples containing inputs and targets.
 
@@ -134,7 +135,7 @@ class DataBatcher():
         """
         return self._get_batches(self.testing_inputs,
                                  self.testing_outputs,
-                                 batch_size)
+                                 self.batch_size)
 
     def _get_batches(self, inputs, outputs, batch_size):
         # convert data to torch.Tensor before batching

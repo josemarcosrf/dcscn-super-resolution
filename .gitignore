@@ -1,5 +1,6 @@
 *.pyc
 
+.cache/
 __cache__/
 .vscode/
 checkpoints/
