@@ -2,8 +2,7 @@ import logging
 import coloredlogs
 import torch
 
-from dcscn import (dotdict, to_numpy,
-                   compute_psnr_and_ssim)
+from dcscn import dotdict
 
 from dcscn.net import DCSCN
 from dcscn.training.trainer import Trainer
@@ -22,8 +21,8 @@ default_config = dotdict({
     'lr': 0.002,
     'batch_size': 64,
     'use_cuda': True,
-    'train_data_path': './data/train',
-    'eval_data_path': './data/eval',
+    'train_data_path': './data/mini/train',
+    'eval_data_path': './data/mini/eval',
     'tf_log_dir': './logs',
     'checkpoint_path': './checkpoints',
 })
@@ -32,10 +31,11 @@ default_config = dotdict({
 def create_trainer_helpers():
     # MSE stagnation tracker to decrease learning rate
     mse_stagnation_tracker = MetricTracker(
-        'mse', MetricTracker.is_stagnated, {'patience': 5, 'tolerance': 1e-4}
+        'mse', MetricTracker.is_stagnated,
+        {'patience': 5, 'tolerance': 1e-4}
     )
 
-    # Checkpointer: save model only on SPNR improvement
+    # Checkpointer: save model only on PSNR improvement
     psnr_tracker = MetricTracker('psnr', MetricTracker.is_max, {})
     checkpointer = Checkpointer(
         default_config.checkpoint_path,

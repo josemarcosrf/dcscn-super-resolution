@@ -125,7 +125,6 @@ class DataBatcher():
                                  self.training_outputs,
                                  self.batch_size)
 
-
     def get_val_batch(self):
         """Returns an iterator yielding a chunk (batch) of evaluations
         tuples containing inputs and targets.
@@ -160,4 +159,3 @@ if __name__ == "__main__":
         logger.debug(inp.shape)
         logger.debug(out.shape)
         exit()
-

@@ -5,27 +5,36 @@ a deep learning based Single-Image Super-Resolution (SISR) model. [https://arxiv
 
 ## Project structure
 
+As output of `tree -L 3 -I "*.pyc|*cache*|*init*"`:
 ```
 ├── checkpoints
 ├── data
-│   ├── eval
+│   ├── eval            # evaluation data (no augmentation)
 │   │   ├── bsd100
 │   │   ├── set14
 │   │   └── set5
-│   └── train
+│   └── train           # training dataset (no augmentation)
 │       ├── bsd200
 │       └── yang91
 ├── dcscn
-│   ├── data_utils
-│   │   ├── data_loader.py
-│   ├── __init__.py
-│   ├── net.py
-│   └── trainer.py
-├── logs
+│   ├── data_utils              # data loading and augmentation
+│   │   ├── batcher.py
+│   │   └── data_loader.py
+│   ├── net.py                  # model definition
+│   └── training                # training & helpers
+│       ├── checkpointer.py
+│       ├── metrics.py
+│       ├── tf_logger.py
+│       └── trainer.py
+├── Dockerfile              # Dockerfile
+├── entrypoint.sh           # entrypoint script
+├── logs                    # tensorboard logs
 ├── README.md
 ├── requirements.txt
 ├── setup.cfg
-└── train.py
+├── tests                       # python unit tests
+│   └── test_checkpointer.py
+└── train.py                    # training entry point
 
 ```
 
@@ -39,7 +48,6 @@ scikit_image==0.13.1
 Pillow==6.0.0
 ai_utils==1.1.3
 coloredlogs==10.0
-skimage==0.0
 torch==1.1.0
 torchsummary==1.5.1
 torchvision==0.2.2.post3
@@ -51,8 +59,25 @@ Basic training of a model (default configuration)
     python train.py
 ```
 
+### Docker
+
+#### Build
+```bash
+    docker build . -f Dockerfile -t dcscn
+```
+
+#### Run train
+```bash
+docker run -it \
+    -v <project-root-dir>/checkpoints:/super-resolution/app/checkpoints \
+    -v <project-root-dir>/data:/super-resolution/app/data \
+    -v <project-root-dir>/logs:/super-resolution/app/logs \
+    dcscn:latest run /bin/bash
+```
+
 ## TODO:
 
-* Adapt **trainer** to perform appropiate metric comparison to save model
 * Add typing all around the repo when appropiate
+* Verify training achieves paper described performance
+* Generalise trainer into a better general purpose package
 * Populate README

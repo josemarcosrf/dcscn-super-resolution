@@ -6,7 +6,6 @@ matplotlib==2.2.3
 tqdm==4.28.1
 Pillow==6.0.0
 coloredlogs==10.0
-skimage==0.0
 torch==1.1.0
 torchsummary==1.5.1
 torchvision==0.3.0

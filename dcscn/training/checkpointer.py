@@ -29,4 +29,3 @@ class Checkpointer():
         """
         last_measures = dict([(k, v[-1]) for k, v in metrics.items()])
         return self.ckpt_name_template.format(**last_measures, epoch=epoch)
-

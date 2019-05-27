@@ -1,13 +1,13 @@
 import math
 import random
 import numpy as np
-import matplotlib.pyplot as plt
 
 from itertools import islice
 from PIL import Image
 
 
 def plot_images(images):
+    import matplotlib.pyplot as plt
     n = len(images)
     rows = int(math.sqrt(n))
     cols = int(math.ceil(n/rows))
@@ -127,4 +127,3 @@ def parallel_split(split_ratio, *args):
         split_idx = int(len(a) * split_ratio)
         all_outputs.append((a[:split_idx], a[split_idx:]))
     return all_outputs
-

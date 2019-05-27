@@ -9,7 +9,7 @@ from dcscn.training.metrics import MetricTracker
 def test_checkpoints_metric_tracker(metrics, epoch):
     psnr_tracker = MetricTracker('psnr', MetricTracker.is_max, {})
     checkpointer = Checkpointer(
-        "save_test_epoch={epoch}_psnr={psnr}",
+        "", "save_test_epoch={epoch}_psnr={psnr}",
         metric_tracker=psnr_tracker
     )
 
@@ -26,7 +26,7 @@ def test_checkpoints_metric_tracker(metrics, epoch):
 def test_checkpoints_interval(metrics, epoch):
 
     checkpointer = Checkpointer(
-        "save_test_epoch={epoch}_psnr={psnr}",
+        "", "save_test_epoch={epoch}_psnr={psnr}",
         save_every=2
     )
 

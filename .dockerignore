@@ -1,8 +1,12 @@
+docker*
+docs
+.git*
 *.pyc
 
-.cache/
-__cache__/
+__pycache__/
+.cahce/
 .vscode/
 .hypothesis/
+data/
 checkpoints/
 logs/

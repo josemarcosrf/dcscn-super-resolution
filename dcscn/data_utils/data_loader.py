@@ -25,8 +25,9 @@ class DataLoader():
         self._build_augmentations()
 
     def load_transform(self):
-        """Loads all images from a directory containing subdirectories with image files
-        and applies all tranformations rules for the given augmentation level.
+        """Loads all images from a directory containing subdirectories with
+        image files and applies all tranformations rules for the
+        given augmentation level.
 
         Returns:
             Dataset -- List of (List of PIL images, class label)
