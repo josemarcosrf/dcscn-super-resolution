@@ -39,6 +39,7 @@ class DCSCN(nn.Module):
     default_params = {
         'scale_factor': 2,
         'dropout': 0.8,
+        'l2_reg': 1e-4,
         # 'conv_n_filters': [96, 76, 65, 55, 47, 39, 32],
         'conv_n_filters': [96, 81, 70, 60, 50, 41, 32],
         'conv_kernels': [(3, 3), (3, 3), (3, 3),
@@ -68,6 +69,7 @@ class DCSCN(nn.Module):
 
         # training parameters
         self.dropout = params['dropout']
+        self.weight_decay = params['l2_reg']
         # feature extraction parameters
         self.conv_n_filters = params['conv_n_filters']
         self.conv_kernels = params['conv_kernels']
@@ -206,7 +208,9 @@ class DCSCN(nn.Module):
         return metrics
 
     def make_optimizer(self, lr):
-        self.optimizer = optim.Adam(params=self.parameters(), lr=lr)
+        self.optimizer = optim.Adam(params=self.parameters(),
+                                    weight_decay=self.weight_decay,
+                                    lr=lr)
 
     def print_summary(self):
         from torchsummary import summary
