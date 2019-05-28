@@ -2,7 +2,7 @@ import logging
 import coloredlogs
 import numpy as np
 
-from tqdm import tqdm
+from tqdm.autonotebook import tqdm
 from collections import defaultdict
 
 from dcscn import to_numpy
