@@ -1,5 +1,9 @@
 # DCSCN - Super Resolution
 
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fjmrf%2Fdcscn-super-resolution.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fjmrf%2Fdcscn-super-resolution?ref=badge_shield)
+
+-------
+
 A pytorch implementation of "Fast and Accurate Image Super Resolution by Deep CNN with Skip Connection and Network in Network",
 a deep learning based Single-Image Super-Resolution (SISR) model. [https://arxiv.org/abs/1707.05425](https://arxiv.org/abs/1707.05425)
 
@@ -81,3 +85,8 @@ docker run -it \
 * Verify training achieves paper described performance
 * Generalise trainer into a better general purpose package
 * Populate README
+
+
+## License
+
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fjmrf%2Fdcscn-super-resolution.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fjmrf%2Fdcscn-super-resolution?ref=badge_large)
