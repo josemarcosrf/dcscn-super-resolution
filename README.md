@@ -1,4 +1,6 @@
 # DCSCN - Super Resolution
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fjmrf%2Fdcscn-super-resolution.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fjmrf%2Fdcscn-super-resolution?ref=badge_shield)
+
 
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fjmrf%2Fdcscn-super-resolution.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fjmrf%2Fdcscn-super-resolution?ref=badge_shield)
 
@@ -90,3 +92,4 @@ docker run -it \
 ## License
 
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fjmrf%2Fdcscn-super-resolution.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fjmrf%2Fdcscn-super-resolution?ref=badge_large)
+
